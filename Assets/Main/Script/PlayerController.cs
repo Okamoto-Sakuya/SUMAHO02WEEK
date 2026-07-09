@@ -7,8 +7,17 @@ public class PlayerController : MonoBehaviour
     public Transform startPoint;
     public Transform leftPoint;
     public Transform rightPoint;
+    public Transform attackObject;
+
+    public GameObject attackEffect;   // エフェクトPrefab
+    public Transform effectPoint;     // エフェクトを出す位置
 
     public EnemyController enemy;
+
+    public Transform cameraTransform; // 揺らすカメラ
+
+    public AudioClip attackSound;      // 攻撃音
+    private AudioSource audioSource;
 
     private bool canAction = true;
     private bool canAttack = true;
@@ -16,6 +25,13 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         transform.position = startPoint.position;
+
+        audioSource = GetComponent<AudioSource>();
+
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
     }
 
     void Update()
@@ -64,18 +80,95 @@ public class PlayerController : MonoBehaviour
     {
         if (!canAttack) return;
 
-        enemy.TakeDamage(10);
-        enemy.StartAttack();
+        // 攻撃音
+        if (attackSound != null)
+        {
+            audioSource.PlayOneShot(attackSound);
+        }
+
+        StartCoroutine(AttackMotion());
+
+        // カメラシェイク
+        if (cameraTransform != null)
+        {
+            StartCoroutine(CameraShake());
+        }
+
+        // エフェクト生成
+        if (attackEffect != null && effectPoint != null)
+        {
+            GameObject effect = Instantiate(
+                attackEffect,
+                effectPoint.position,
+                effectPoint.rotation
+            );
+
+            ParticleSystem ps = effect.GetComponent<ParticleSystem>();
+            if (ps != null)
+            {
+                ps.Play();
+                Destroy(effect, ps.main.duration + ps.main.startLifetime.constantMax);
+            }
+            else
+            {
+                Destroy(effect, 2f);
+            }
+        }
+
+        if (enemy != null)
+        {
+            enemy.TakeDamage(10);
+            enemy.StartAttack();
+        }
 
         StartCoroutine(AttackCooldown());
+    }
+
+    IEnumerator AttackMotion()
+    {
+        Vector3 original = attackObject.position;
+
+        float distance = 1.0f;
+        float speed = 0.05f;
+
+        attackObject.position = original + Vector3.right * distance;
+        yield return new WaitForSeconds(speed);
+
+        attackObject.position = original + Vector3.left * distance;
+        yield return new WaitForSeconds(speed);
+
+        attackObject.position = original;
     }
 
     IEnumerator AttackCooldown()
     {
         canAttack = false;
 
-        yield return new WaitForSeconds(1.5f); // ←ここがクールダウン
+        yield return new WaitForSeconds(1.5f);
 
         canAttack = true;
+    }
+    IEnumerator CameraShake()
+    {
+        Vector3 originalPos = cameraTransform.localPosition;
+
+        float duration = 0.15f; // 揺れる時間
+        float power = 0.2f;      // 揺れる強さ
+
+        float timer = 0;
+
+        while (timer < duration)
+        {
+            float x = Random.Range(-power, power);
+            float y = Random.Range(-power, power);
+
+            cameraTransform.localPosition = originalPos + new Vector3(x, y, 0);
+
+            timer += Time.deltaTime;
+
+            yield return null;
+        }
+
+        cameraTransform.localPosition = originalPos;
     }
 }
