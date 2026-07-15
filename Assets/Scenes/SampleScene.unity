@@ -155,6 +155,8 @@ MonoBehaviour:
   attackCollider: {fileID: 1338551963}
   attackEffect: {fileID: 2965222256817593503, guid: a164e676dbbd6e54587237e619372c98, type: 3}
   attackObject: {fileID: 24731859}
+  attackInterval: 2
+  attackChance: 0.5
 --- !u!136 &24731855
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -475,7 +477,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 60
+  field of view: 88
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
@@ -501,13 +503,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.20331728, y: 0.098796755, z: -0.02062089, w: -0.97389734}
-  m_LocalPosition: {x: -12.426035, y: 4.530884, z: 3.714947}
+  m_LocalRotation: {x: 0.20433673, y: 0.014523434, z: -0.0030402257, w: 0.97878826}
+  m_LocalPosition: {x: -15.16, y: 3.64, z: 4.59}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 23.584, y: 1.7, z: -0.001}
 --- !u!114 &330585547
 MonoBehaviour:
   m_ObjectHideFlags: 0

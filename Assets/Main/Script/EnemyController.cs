@@ -3,18 +3,28 @@ using System.Collections;
 
 public class EnemyController : MonoBehaviour
 {
+    [Header("攻撃設定")]
     public Collider attackCollider;
+    public GameObject attackEffect;
+    public Transform attackObject;
 
-    public GameObject attackEffect;   // エフェクトPrefab
-    public Transform attackObject;    // 動かしたいオブジェクト
+    [Header("攻撃間隔")]
+    public float attackInterval = 2f;
+
+    [Range(0f, 1f)]
+    public float attackChance = 0.5f; // 50%
 
     private EnemyHealth hp;
+    private bool isAttacking = false;
 
     void Start()
     {
         hp = GetComponent<EnemyHealth>();
 
         attackCollider.enabled = false;
+
+        // 攻撃ループ開始
+        StartCoroutine(AttackLoop());
     }
 
     public void TakeDamage(int damage)
@@ -22,29 +32,37 @@ public class EnemyController : MonoBehaviour
         hp.TakeDamage(damage);
     }
 
-    public void StartAttack()
+    IEnumerator AttackLoop()
     {
-        StartCoroutine(AttackRoutine());
+        while (true)
+        {
+            yield return new WaitForSeconds(attackInterval);
+
+            // 攻撃中でなければランダム判定
+            if (!isAttacking && Random.value <= attackChance)
+            {
+                yield return StartCoroutine(AttackRoutine());
+            }
+        }
     }
 
     IEnumerator AttackRoutine()
     {
+        isAttacking = true;
+
         // 攻撃前の待機
         yield return new WaitForSeconds(1f);
 
-
-        // 攻撃モーション開始
+        // 攻撃モーション
         if (attackObject != null)
         {
             StartCoroutine(AttackMotion());
         }
 
-
         // コライダーON
         attackCollider.enabled = true;
 
-
-        // コライダー位置からエフェクト発生
+        // エフェクト生成
         if (attackEffect != null)
         {
             GameObject effect = Instantiate(
@@ -66,15 +84,14 @@ public class EnemyController : MonoBehaviour
             }
         }
 
-
         // 攻撃判定時間
         yield return new WaitForSeconds(0.3f);
 
-
         // コライダーOFF
         attackCollider.enabled = false;
-    }
 
+        isAttacking = false;
+    }
 
     IEnumerator AttackMotion()
     {
@@ -83,16 +100,13 @@ public class EnemyController : MonoBehaviour
         float distance = 1.0f;
         float speed = 0.05f;
 
-
-        // 左へ振る
+        // 左へ
         attackObject.position = original + Vector3.left * distance;
         yield return new WaitForSeconds(speed);
 
-
-        // 右へ戻す
+        // 右へ
         attackObject.position = original + Vector3.right * distance;
         yield return new WaitForSeconds(speed);
-
 
         // 元の位置
         attackObject.position = original;

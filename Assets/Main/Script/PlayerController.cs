@@ -79,7 +79,7 @@ public class PlayerController : MonoBehaviour
     void Attack()
     {
         if (!canAttack) return;
-
+        StartCoroutine(AttackRoutine());
         // 攻撃音
         if (attackSound != null)
         {
@@ -118,7 +118,7 @@ public class PlayerController : MonoBehaviour
         if (enemy != null)
         {
             enemy.TakeDamage(10);
-            enemy.StartAttack();
+            //enemy.StartAttack();
         }
 
         StartCoroutine(AttackCooldown());
@@ -170,5 +170,64 @@ public class PlayerController : MonoBehaviour
         }
 
         cameraTransform.localPosition = originalPos;
+    }
+
+    IEnumerator AttackRoutine()
+    {
+        canAttack = false;
+
+        // 攻撃前の構え
+        Vector3 original = attackObject.position;
+        attackObject.position = original + Vector3.left * 0.3f;
+
+        // 少し溜める
+        yield return new WaitForSeconds(0.15f);
+
+        // 攻撃音
+        if (attackSound != null)
+        {
+            audioSource.PlayOneShot(attackSound);
+        }
+
+        // 攻撃モーション
+        StartCoroutine(AttackMotion());
+
+        // カメラシェイク
+        if (cameraTransform != null)
+        {
+            StartCoroutine(CameraShake());
+        }
+
+        // エフェクト
+        if (attackEffect != null && effectPoint != null)
+        {
+            GameObject effect = Instantiate(
+                attackEffect,
+                effectPoint.position,
+                effectPoint.rotation
+            );
+
+            ParticleSystem ps = effect.GetComponent<ParticleSystem>();
+
+            if (ps != null)
+            {
+                ps.Play();
+                Destroy(effect, ps.main.duration + ps.main.startLifetime.constantMax);
+            }
+            else
+            {
+                Destroy(effect, 2f);
+            }
+        }
+
+        // ダメージ
+        if (enemy != null)
+        {
+            enemy.TakeDamage(10);
+        }
+
+        // クールタイム
+        yield return new WaitForSeconds(1.5f);
+        canAttack = true;
     }
 }
