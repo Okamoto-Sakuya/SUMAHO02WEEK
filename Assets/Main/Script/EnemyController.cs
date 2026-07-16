@@ -8,11 +8,27 @@ public class EnemyController : MonoBehaviour
     public GameObject attackEffect;
     public Transform attackObject;
 
+    [Header("攻撃オブジェクト設定")]
+    public float attackDistance = 1f;   // 移動距離
+    public float attackSpeed = 0.08f;   // 攻撃速度
+
+    public Vector3 attackRotation = new Vector3(0, 0, -90f); // 攻撃時の回転
+    public float rotationSpeed = 0.08f; // 回転速度
+
     [Header("攻撃間隔")]
     public float attackInterval = 2f;
 
-    [Range(0f, 1f)]
-    public float attackChance = 0.5f; // 50%
+    [Header("攻撃前移動")]
+    [SerializeField] private Transform moveObject;   // ← Inspectorでアタッチ
+    public float moveDistance = 0.5f;
+    public float moveDuration = 0.15f;
+
+    [Header("サウンド")]
+    public AudioClip attackSound;
+    private AudioSource audioSource;
+
+    //[Range(0f, 1f)]
+    //public float attackChance = 0.5f; // 50%
 
     private EnemyHealth hp;
     private bool isAttacking = false;
@@ -21,9 +37,13 @@ public class EnemyController : MonoBehaviour
     {
         hp = GetComponent<EnemyHealth>();
 
-        attackCollider.enabled = false;
+        audioSource = GetComponent<AudioSource>();
 
-        // 攻撃ループ開始
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+
         StartCoroutine(AttackLoop());
     }
 
@@ -36,13 +56,18 @@ public class EnemyController : MonoBehaviour
     {
         while (true)
         {
-            yield return new WaitForSeconds(attackInterval);
+            // 2秒間の中でランダムな待機時間
+            float randomTime = Random.Range(0f, attackInterval);
 
-            // 攻撃中でなければランダム判定
-            if (!isAttacking && Random.value <= attackChance)
+            yield return new WaitForSeconds(randomTime);
+
+            if (!isAttacking)
             {
                 yield return StartCoroutine(AttackRoutine());
             }
+
+            // 次の攻撃まで待つ
+            yield return new WaitForSeconds(attackInterval - randomTime);
         }
     }
 
@@ -50,17 +75,25 @@ public class EnemyController : MonoBehaviour
     {
         isAttacking = true;
 
-        // 攻撃前の待機
-        yield return new WaitForSeconds(1f);
+        // 敵本体が前に出て戻る
+        yield return StartCoroutine(PrepareAttackMove());
 
-        // 攻撃モーション
-        if (attackObject != null)
+        // 少し溜める
+        yield return new WaitForSeconds(0.2f);
+
+        // attackObjectを動かす（終わるまで待つ）
+        yield return StartCoroutine(AttackMotion());
+
+        // 攻撃音
+        if (attackSound != null)
         {
-            StartCoroutine(AttackMotion());
+            audioSource.PlayOneShot(attackSound);
         }
 
+        // attackObjectを動かす
+        yield return StartCoroutine(AttackMotion());
         // コライダーON
-        attackCollider.enabled = true;
+        //attackCollider.enabled = true;
 
         // エフェクト生成
         if (attackEffect != null)
@@ -84,31 +117,109 @@ public class EnemyController : MonoBehaviour
             }
         }
 
-        // 攻撃判定時間
         yield return new WaitForSeconds(0.3f);
 
-        // コライダーOFF
-        attackCollider.enabled = false;
+       // attackCollider.enabled = false;
 
         isAttacking = false;
     }
 
     IEnumerator AttackMotion()
     {
-        Vector3 original = attackObject.position;
+        if (attackObject == null)
+            yield break;
 
-        float distance = 1.0f;
-        float speed = 0.05f;
+        Vector3 startPos = attackObject.localPosition;
+        Quaternion startRot = attackObject.localRotation;
 
-        // 左へ
-        attackObject.position = original + Vector3.left * distance;
-        yield return new WaitForSeconds(speed);
+        Vector3 attackPos = startPos + Vector3.left * attackDistance;
+        Quaternion targetRot = Quaternion.Euler(attackRotation);
 
-        // 右へ
-        attackObject.position = original + Vector3.right * distance;
-        yield return new WaitForSeconds(speed);
+        float t = 0f;
 
-        // 元の位置
-        attackObject.position = original;
+        // 攻撃（移動＋回転）
+        while (t < attackSpeed)
+        {
+            t += Time.deltaTime;
+
+            float progress = t / attackSpeed;
+
+            attackObject.localPosition = Vector3.Lerp(
+                startPos,
+                attackPos,
+                progress
+            );
+
+            attackObject.localRotation = Quaternion.Lerp(
+                startRot,
+                targetRot,
+                progress
+            );
+
+            yield return null;
+        }
+
+        attackObject.localPosition = attackPos;
+        attackObject.localRotation = targetRot;
+
+
+        // 元に戻す
+        t = 0f;
+
+        while (t < rotationSpeed)
+        {
+            t += Time.deltaTime;
+
+            float progress = t / rotationSpeed;
+
+            attackObject.localPosition = Vector3.Lerp(
+                attackPos,
+                startPos,
+                progress
+            );
+
+            attackObject.localRotation = Quaternion.Lerp(
+                targetRot,
+                startRot,
+                progress
+            );
+
+            yield return null;
+        }
+
+        attackObject.localPosition = startPos;
+        attackObject.localRotation = startRot;
+    }
+    IEnumerator PrepareAttackMove()
+    {
+        if (moveObject == null)
+            yield break;
+
+        Vector3 startPos = moveObject.localPosition;
+        Vector3 targetPos = startPos + Vector3.left * moveDistance;
+
+        float t = 0f;
+
+        while (t < moveDuration)
+        {
+            t += Time.deltaTime;
+            moveObject.localPosition = Vector3.Lerp(startPos, targetPos, t / moveDuration);
+            yield return null;
+        }
+
+        moveObject.localPosition = targetPos;
+
+        yield return new WaitForSeconds(0.05f);
+
+        t = 0f;
+
+        while (t < moveDuration)
+        {
+            t += Time.deltaTime;
+            moveObject.localPosition = Vector3.Lerp(targetPos, startPos, t / moveDuration);
+            yield return null;
+        }
+
+        moveObject.localPosition = startPos;
     }
 }

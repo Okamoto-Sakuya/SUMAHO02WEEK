@@ -4,6 +4,11 @@ using System.Collections;
 
 public class PlayerController : MonoBehaviour
 {
+
+    [Header("移動設定")]
+    public float moveTime = 0.1f; // 左右移動時間
+    public float stayTime = 1f;   // 滞在時間
+
     public Transform startPoint;
     public Transform leftPoint;
     public Transform rightPoint;
@@ -67,11 +72,39 @@ public class PlayerController : MonoBehaviour
     {
         canAction = false;
 
-        transform.position = target.position;
+        Vector3 startPos = transform.position;
+        Vector3 endPos = target.position;
 
-        yield return new WaitForSeconds(2f);
+       // float moveTime = 0.25f; // 移動時間
+        float t = 0f;
 
-        transform.position = startPoint.position;
+        // 左右へ移動
+        while (t < moveTime)
+        {
+            t += Time.deltaTime;
+            transform.position = Vector3.Lerp(startPos, endPos, t / moveTime);
+            yield return null;
+        }
+
+        transform.position = endPos;
+
+        // 左右にいる時間
+        yield return new WaitForSeconds(stayTime);
+
+        // 元の位置へ戻る
+        startPos = transform.position;
+        endPos = startPoint.position;
+
+        t = 0f;
+
+        while (t < moveTime)
+        {
+            t += Time.deltaTime;
+            transform.position = Vector3.Lerp(startPos, endPos, t / moveTime);
+            yield return null;
+        }
+
+        transform.position = endPos;
 
         canAction = true;
     }
