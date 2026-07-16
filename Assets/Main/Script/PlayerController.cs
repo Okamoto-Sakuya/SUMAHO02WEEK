@@ -4,6 +4,11 @@ using System.Collections;
 
 public class PlayerController : MonoBehaviour
 {
+    private Vector2 swipeStartPos;
+    private bool isSwiping = false;
+
+    [SerializeField]
+    private float swipeDistance = 80f; // 必要なスワイプ距離
 
     [Header("移動設定")]
     public float moveTime = 0.1f; // 左右移動時間
@@ -44,14 +49,59 @@ public class PlayerController : MonoBehaviour
         if (!canAction)
             return;
 
+#if UNITY_EDITOR || UNITY_STANDALONE
+        // ===== マウス =====
+
         if (Input.GetMouseButtonDown(0))
         {
             if (EventSystem.current != null &&
                 EventSystem.current.IsPointerOverGameObject())
                 return;
 
-            Attack();
+            swipeStartPos = Input.mousePosition;
+            isSwiping = true;
         }
+
+        if (Input.GetMouseButtonUp(0) && isSwiping)
+        {
+            Vector2 endPos = Input.mousePosition;
+            Vector2 delta = endPos - swipeStartPos;
+
+            // 横スワイプ判定
+            if (Mathf.Abs(delta.x) > swipeDistance &&
+                Mathf.Abs(delta.x) > Mathf.Abs(delta.y))
+            {
+                Attack();
+            }
+
+            isSwiping = false;
+        }
+
+#else
+    // ===== スマホ =====
+
+    if (Input.touchCount > 0)
+    {
+        Touch touch = Input.GetTouch(0);
+
+        switch (touch.phase)
+        {
+            case TouchPhase.Began:
+                swipeStartPos = touch.position;
+                break;
+
+            case TouchPhase.Ended:
+                Vector2 delta = touch.position - swipeStartPos;
+
+                if (Mathf.Abs(delta.x) > swipeDistance &&
+                    Mathf.Abs(delta.x) > Mathf.Abs(delta.y))
+                {
+                    Attack();
+                }
+                break;
+        }
+    }
+#endif
     }
 
     public void MoveLeft()
